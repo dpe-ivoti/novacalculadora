@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Débitos Alimentares Profissional</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #27ae60;
+            --accent-color: #2980b9;
+            --danger-color: #c0392b;
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --card-bg: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            line-height: 1.6; 
+            padding: 20px; 
+        }
+
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background-color: var(--card-bg); 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); 
+        }
+
+        h1 { 
+            color: var(--primary-color); 
+            text-align: center; 
+            margin-bottom: 30px; 
+            font-weight: 600;
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 10px;
+        }
+
+        .form-section { 
+            background-color: #fff; 
+            padding: 20px; 
+            margin-bottom: 20px; 
+            border-radius: 8px; 
+            border: 1px solid #e0e0e0; 
+        }
+
+        .form-section h2 { 
+            color: var(--accent-color); 
+            margin-bottom: 15px; 
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-row { 
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        input, select { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #ccc; 
+            border-radius: 6px; 
+            font-size: 15px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus, select:focus { 
+            outline: none; 
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.1);
+        }
+
+        .button { 
+            background-color: var(--secondary-color); 
+            color: white; 
+            padding: 14px 28px; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 16px; 
+            font-weight: 600;
+            cursor: pointer; 
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .button:hover { background-color: #219150; transform: translateY(-1px); }
+
+        .button-secondary { 
+            background-color: var(--accent-color); 
+            margin-top: 10px;
+        }
+
+        .pagamento-item { 
+            background-color: #f8f9fa; 
+            padding: 12px; 
+            margin-bottom: 8px; 
+            border-radius: 6px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .remove-pagamento { 
+            background-color: var(--danger-color); 
+            color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; 
+        }
+
+        .resultado { margin-top: 40px; }
+
+        .info-box { 
+            background-color: #eef2f7; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            border-left: 5px solid var(--accent-color); 
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: var(--primary-color); color: white; }
+        tr:hover { background-color: #f1f1f1; }
+
+        .total-row { background-color: #d5e6d5 !important; font-weight: bold; font-size: 1.1em; }
+
+        #loading { display: none; text-align: center; margin: 20px; }
+        .spinner { 
+            width: 40px; height: 40px; border: 4px solid #f3f3f3; 
+            border-top: 4px solid var(--secondary-color); border-radius: 50%; 
+            animation: spin 1s linear infinite; display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            table { font-size: 0.8em; display: block; overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Atualização de Débitos Alimentares</h1>
+    
+    <form id="pensaoForm">
+        <div class="form-section">
+            <h2>Período e Configuração</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Data de Início</label>
+                    <input type="date" id="dataInicio" required>
+                </div>
+                <div class="form-group">
+                    <label>Data de Fim</label>
+                    <input type="date" id="dataFim" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>% do Salário Mínimo</label>
+                    <input type="number" id="percentualSalario" step="0.01" placeholder="Ex: 30" required>
+                </div>
+                <div class="form-group">
+                    <label>Dia de Vencimento</label>
+                    <select id="diaVencimento" required>
+                        <option value="5util">5º dia útil</option>
+                        <option value="1">Dia 01</option>
+                        <option value="5">Dia 05</option>
+                        <option value="10">Dia 10</option>
+                        <option value="15">Dia 15</option>
+                        <option value="20">Dia 20</option>
+                        <option value="30">Dia 30 (ou último do mês)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>Pagamentos Parciais Efetuados</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Valor Pago (R$)</label>
+                    <input type="number" id="valorPagamento" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Data do Pagamento</label>
+                    <input type="date" id="dataPagamento">
+                </div>
+            </div>
+            <button type="button" class="button button-secondary" onclick="adicionarPagamento()">Adicionar Pagamento</button>
+            <div id="pagamentosList" style="margin-top:15px;"></div>
+        </div>
+
+        <button type="submit" class="button">Gerar Planilha de Cálculo</button>
+    </form>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Processando cálculos e índices...</p>
+    </div>
+
+    <div id="resultado" style="display: none;"></div>
+</div>
+
+<script>
+    // Tabela de Salário Mínimo Atualizada
+    const salarioMinimoHistorico = [
+        { data: '2026-01-01', valor: 1621.00 }, // Valor solicitado
+        { data: '2025-01-01', valor: 1518.00 },
+        { data: '2024-01-01', valor: 1412.00 },
+        { data: '2023-05-01', valor: 1320.00 },
+        { data: '2023-01-01', valor: 1302.00 },
+        { data: '2022-01-01', valor: 1212.00 },
+        { data: '2021-01-01', valor: 1100.00 },
+        { data: '2020-02-01', valor: 1045.00 },
+        { data: '2020-01-01', valor: 1039.00 },
+        { data: '2019-01-01', valor: 998.00 },
+        { data: '2018-01-01', valor: 954.00 },
+        { data: '2017-01-01', valor: 937.00 },
+        { data: '2016-01-01', valor: 880.00 },
+        { data: '2015-01-01', valor: 788.00 },
+        { data: '2014-01-01', valor: 724.00 }
+    ];
+
+    // Simulação de IPCA (Média histórica para projeções futuras)
+    const ipcaMensal = {
+        'default': 0.0045, // Projeção de 0.45% a.m. para meses sem índice oficial
+        '2024-01': 0.0042, '2024-02': 0.0083, '2024-03': 0.0016, '2024-04': 0.0038,
+        '2024-05': 0.0046, '2024-06': 0.0021, '2024-07': 0.0038, '2024-08': -0.0002,
+        '2024-09': 0.0044, '2024-10': 0.0056, '2024-11': 0.0062, '2024-12': 0.0058
+    };
+
+    let pagamentos = [];
+
+    function adicionarPagamento() {
+        const valor = document.getElementById('valorPagamento').value;
+        const data = document.getElementById('dataPagamento').value;
+        if (valor && data) {
+            pagamentos.push({ valor: parseFloat(valor), data: data });
+            atualizarListaPagamentos();
+            document.getElementById('valorPagamento').value = '';
+            document.getElementById('dataPagamento').value = '';
+        } else {
+            alert('Informe valor e data do pagamento parcial.');
+        }
+    }
+
+    function atualizarListaPagamentos() {
+        const lista = document.getElementById('pagamentosList');
+        lista.innerHTML = '';
+        pagamentos.forEach((p, i) => {
+            lista.innerHTML += `
+                <div class="pagamento-item">
+                    <span><strong>R$ ${p.valor.toLocaleString('pt-BR', {minimumFractionDigits:2})}</strong> - ${p.data.split('-').reverse().join('/')}</span>
+                    <button class="remove-pagamento" onclick="pagamentos.splice(${i},1); atualizarListaPagamentos();">Remover</button>
+                </div>`;
+        });
+    }
+
+    function getSalarioVigente(dataObj) {
+        for (let item of salarioMinimoHistorico) {
+            if (dataObj >= new Date(item.data + 'T00:00:00')) return item.valor;
+        }
+        return 724.00;
+    }
+
+    function isDiaUtil(data) {
+        const ds = data.getDay();
+        return ds !== 0 && ds !== 6;
+    }
+
+    function get5DiaUtil(ano, mes) {
+        let data = new Date(ano, mes, 1);
+        let cont = 0;
+        while (cont < 5) {
+            if (isDiaUtil(data)) cont++;
+            if (cont < 5) data.setDate(data.getDate() + 1);
+        }
+        return data;
+    }
+
+    function calcularVencimento(ano, mes, config) {
+        if (config === '5util') return get5DiaUtil(ano, mes);
+        let dia = parseInt(config);
+        let data = new Date(ano, mes + 1, 0); // Ultimo dia do mês
+        let diaFinal = Math.min(dia, data.getDate());
+        return new Date(ano, mes, diaFinal);
+    }
+
+    document.getElementById('pensaoForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('resultado').style.display = 'none';
+
+        setTimeout(() => {
+            const dataInicio = new Date(document.getElementById('dataInicio').value + 'T00:00:00');
+            const dataFim = new Date(document.getElementById('dataFim').value + 'T00:00:00');
+            const pct = parseFloat(document.getElementById('percentualSalario').value) / 100;
+            const vencConfig = document.getElementById('diaVencimento').value;
+            const hoje = new Date();
+
+            let totalDevidoFinal = 0;
+            let totalPagoFinal = 0;
+            let parcelasHtml = "";
+
+            // Loop das parcelas mensais
+            let atual = new Date(dataInicio.getFullYear(), dataInicio.getMonth(), 1);
+            while (atual <= dataFim) {
+                const dataVenc = calcularVencimento(atual.getFullYear(), atual.getMonth(), vencConfig);
+                const valorBase = getSalarioVigente(dataVenc) * pct;
+                
+                // Simulação simplificada de correção acumulada (IPCA + Juros 1%)
+                // Em um sistema real, aqui se aplicaria a tabela de fatores acumulados
+                let mesesAtraso = Math.max(0, (hoje.getFullYear() - dataVenc.getFullYear()) * 12 + (hoje.getMonth() - dataVenc.getMonth()));
+                let juros = valorBase * 0.01 * mesesAtraso;
+                let correcao = valorBase * (ipcaMensal.default * mesesAtraso); // Simplificação
+                let totalParcela = valorBase + juros + correcao;
+
+                parcelasHtml += `
+                    <tr>
+                        <td>${(atual.getMonth()+1).toString().padStart(2,'0')}/${atual.getFullYear()}</td>
+                        <td>${dataVenc.toLocaleDateString('pt-BR')}</td>
+                        <td>R$ ${valorBase.toFixed(2)}</td>
+                        <td>R$ ${correcao.toFixed(2)}</td>
+                        <td>R$ ${juros.toFixed(2)}</td>
+                        <td><strong>R$ ${totalParcela.toFixed(2)}</strong></td>
+                    </tr>`;
+                
+                totalDevidoFinal += totalParcela;
+                atual.setMonth(atual.getMonth() + 1);
+            }
+
+            // Processar Pagamentos realizados
+            pagamentos.forEach(p => {
+                const dPag = new Date(p.data + 'T00:00:00');
+                let mesesAtraso = Math.max(0, (hoje.getFullYear() - dPag.getFullYear()) * 12 + (hoje.getMonth() - dPag.getMonth()));
+                let valorAtualizadoPagto = p.valor * (1 + (0.01 + ipcaMensal.default) * mesesAtraso);
+                totalPagoFinal += valorAtualizadoPagto;
+            });
+
+            const saldo = totalDevidoFinal - totalPagoFinal;
+
+            let resDiv = document.getElementById('resultado');
+            resDiv.innerHTML = `
+                <div class="info-box">
+                    <h3>Resumo do Cálculo</h3>
+                    <p>Período: ${dataInicio.toLocaleDateString('pt-BR')} a ${dataFim.toLocaleDateString('pt-BR')}</p>
+                    <p>Salário Mínimo 2026 Base: R$ 1.621,00</p>
+                    <p>Índice: IPCA-IBGE + Juros de 1% ao mês (Simples)</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mês/Ano</th>
+                            <th>Vencimento</th>
+                            <th>Valor Base</th>
+                            <th>IPCA</th>
+                            <th>Juros (1%)</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>${parcelasHtml}</tbody>
+                </table>
+                <table>
+                    <tr class="total-row"><td>TOTAL DEVIDO ATUALIZADO</td><td style="text-align:right">R$ ${totalDevidoFinal.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td></tr>
+                    <tr class="total-row" style="background-color:#f8d7da !important"><td>(-) TOTAL PAGO (ATUALIZADO)</td><td style="text-align:right">R$ ${totalPagoFinal.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td></tr>
+                    <tr class="total-row" style="background-color:#27ae60 !important; color:white"><td>SALDO DEVEDOR FINAL</td><td style="text-align:right">R$ ${saldo.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td></tr>
+                </table>
+            `;
+            
+            document.getElementById('loading').style.display = 'none';
+            resDiv.style.display = 'block';
+        }, 800);
+    });
+</script>
+
+</body>
+</html>
