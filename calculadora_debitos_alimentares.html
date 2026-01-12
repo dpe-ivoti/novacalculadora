@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Débitos Alimentares - IPCA</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #27ae60;
+            --accent: #2980b9;
+            --danger: #e74c3c;
+            --light: #ecf0f1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: var(--primary);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            border-bottom: 3px solid var(--secondary);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+
+        .grid-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        input, select {
+            padding: 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn-primary { background: var(--secondary); color: white; width: 100%; }
+        .btn-primary:hover { background: #219150; }
+
+        .btn-add { background: var(--accent); color: white; margin-top: 10px; }
+
+        .payment-list {
+            margin: 20px 0;
+            padding: 15px;
+            background: var(--light);
+            border-radius: 8px;
+        }
+
+        .payment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .total-box {
+            margin-top: 20px;
+            padding: 20px;
+            background: #d5e6d5;
+            border-radius: 8px;
+            font-size: 1.2em;
+        }
+
+        .row-total { font-weight: bold; color: var(--secondary); }
+        .row-debit { font-weight: bold; color: var(--danger); }
+
+        @media (max-width: 600px) {
+            .grid-form { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Atualização de Débitos Alimentares</h1>
+
+    <form id="calcForm">
+        <div class="grid-form">
+            <div class="input-group">
+                <label>Início do Débito</label>
+                <input type="date" id="dataInicio" required>
+            </div>
+            <div class="input-group">
+                <label>Fim do Período</label>
+                <input type="date" id="dataFim" required>
+            </div>
+            <div class="input-group">
+                <label>% do Salário Mínimo</label>
+                <input type="number" id="percentual" step="0.01" value="30" required>
+            </div>
+            <div class="input-group">
+                <label>Dia do Vencimento</label>
+                <select id="vencimento">
+                    <option value="5">Dia 05</option>
+                    <option value="10">Dia 10</option>
+                    <option value="15">Dia 15</option>
+                    <option value="5util">5º Dia Útil</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px;">
+            <h3>Registrar Pagamentos Parciais (se houver)</h3>
+            <div class="grid-form" style="margin-bottom: 0;">
+                <div class="input-group">
+                    <label>Valor Pago (R$)</label>
+                    <input type="number" id="pagoValor" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label>Data do Pagamento</label>
+                    <input type="date" id="pagoData">
+                </div>
+            </div>
+            <button type="button" class="btn btn-add" onclick="addPagamento()">Adicionar Pagamento</button>
+            <div id="listaPagamentos" class="payment-list" style="display:none"></div>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn btn-primary">Calcular Atualização</button>
+        </div>
+    </form>
+
+    <div id="resultado" style="display:none">
+        <table id="tabelaResultados">
+            <thead>
+                <tr>
+                    <th>Mês/Ano</th>
+                    <th>Vencimento</th>
+                    <th>Valor Nominal</th>
+                    <th>IPCA + Juros (1%)</th>
+                    <th>Valor Atualizado</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div class="total-box" id="resumoFinal"></div>
+    </div>
+</div>
+
+<script>
+    const salarioMinimoHistorico = [
+        { data: '2026-01-01', valor: 1621.00 },
+        { data: '2025-01-01', valor: 1518.00 },
+        { data: '2024-01-01', valor: 1412.00 },
+        { data: '2023-05-01', valor: 1320.00 },
+        { data: '2023-01-01', valor: 1302.00 },
+        { data: '2022-01-01', valor: 1212.00 },
+        { data: '2021-01-01', valor: 1100.00 },
+        { data: '2020-02-01', valor: 1045.00 },
+        { data: '2020-01-01', valor: 1039.00 }
+    ];
+
+    // Simulação de IPCA mensal (média 0.45%)
+    const getIPCA = () => 0.0045;
+
+    let pagamentosEfetuados = [];
+
+    function addPagamento() {
+        const valor = document.getElementById('pagoValor').value;
+        const data = document.getElementById('pagoData').value;
+        if(valor && data) {
+            pagamentosEfetuados.push({ valor: parseFloat(valor), data: data });
+            renderPagamentos();
+            document.getElementById('pagoValor').value = '';
+            document.getElementById('pagoData').value = '';
+        }
+    }
+
+    function renderPagamentos() {
+        const div = document.getElementById('listaPagamentos');
+        div.style.display = 'block';
+        div.innerHTML = '<strong>Pagamentos Registrados:</strong>';
+        pagamentosEfetuados.forEach((p, i) => {
+            div.innerHTML += `<div class="payment-item">
+                <span>${p.data.split('-').reverse().join('/')} - R$ ${p.valor.toFixed(2)}</span>
+                <button onclick="pagamentosEfetuados.splice(${i},1); renderPagamentos();" style="color:red; border:none; cursor:pointer;">Remover</button>
+            </div>`;
+        });
+    }
+
+    function getSalario(data) {
+        for (let s of salarioMinimoHistorico) {
+            if (data >= new Date(s.data + 'T00:00:00')) return s.valor;
+        }
+        return 998.00;
+    }
+
+    document.getElementById('calcForm').onsubmit = function(e) {
+        e.preventDefault();
+        
+        const dataInicio = new Date(document.getElementById('dataInicio').value + 'T00:00:00');
+        const dataFim = new Date(document.getElementById('dataFim').value + 'T00:00:00');
+        const pct = parseFloat(document.getElementById('percentual').value) / 100;
+        const hoje = new Date();
+        
+        let totalDevido = 0;
+        const tbody = document.querySelector('#tabelaResultados tbody');
+        tbody.innerHTML = '';
+
+        let atual = new Date(dataInicio.getFullYear(), dataInicio.getMonth(), 1);
+        
+        while (atual <= dataFim) {
+            const sal = getSalario(atual);
+            const valorNominal = sal * pct;
+            
+            // Cálculo de meses para Juros (1% am) e IPCA
+            const mesesAtraso = (hoje.getFullYear() - atual.getFullYear()) * 12 + (hoje.getMonth() - atual.getMonth());
+            const fatorIPCA = Math.pow(1 + getIPCA(), mesesAtraso);
+            const valorComIPCA = valorNominal * fatorIPCA;
+            const juros = valorComIPCA * (0.01 * mesesAtraso);
+            const valorAtualizado = valorComIPCA + juros;
+
+            const row = `<tr>
+                <td>${(atual.getMonth()+1).toString().padStart(2,'0')}/${atual.getFullYear()}</td>
+                <td>${document.getElementById('vencimento').value === '5util' ? '5º d.ú.' : document.getElementById('vencimento').value}</td>
+                <td>R$ ${valorNominal.toFixed(2)}</td>
+                <td>R$ ${(valorAtualizado - valorNominal).toFixed(2)}</td>
+                <td><strong>R$ ${valorAtualizado.toFixed(2)}</strong></td>
+            </tr>`;
+            
+            tbody.innerHTML += row;
+            totalDevido += valorAtualizado;
+            atual.setMonth(atual.getMonth() + 1);
+        }
+
+        let totalPago = 0;
+        pagamentosEfetuados.forEach(p => {
+            const d = new Date(p.data + 'T00:00:00');
+            const meses = (hoje.getFullYear() - d.getFullYear()) * 12 + (hoje.getMonth() - d.getMonth());
+            totalPago += p.valor * Math.pow(1 + getIPCA() + 0.01, meses);
+        });
+
+        const saldo = totalDevido - totalPago;
+
+        document.getElementById('resultado').style.display = 'block';
+        document.getElementById('resumoFinal').innerHTML = `
+            <div class="row-total">Total Devido Atualizado: R$ ${totalDevido.toLocaleString('pt-BR', {minimumFractionDigits:2})}</div>
+            <div class="row-total" style="color:#666">(-) Total Pago Atualizado: R$ ${totalPago.toLocaleString('pt-BR', {minimumFractionDigits:2})}</div>
+            <hr>
+            <div class="row-debit">SALDO DEVEDOR FINAL: R$ ${saldo.toLocaleString('pt-BR', {minimumFractionDigits:2})}</div>
+        `;
+        
+        window.scrollTo({ top: document.getElementById('resultado').offsetTop, behavior: 'smooth' });
+    };
+</script>
+
+</body>
+</html>
